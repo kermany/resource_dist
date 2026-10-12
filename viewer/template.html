@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resource distribution under group-structured cooperation</title>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface-1:#fcfcfb;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a;
+  --seq-100:#cde2fb; --seq-200:#9ec5f4; --seq-300:#6da7ec; --seq-400:#3987e5;
+  --seq-500:#256abf; --seq-600:#184f95; --seq-700:#0d366b;
+  --div-neg:#e34948; --div-mid:#f0efec; --div-pos:#2a78d6;
+  --good:#0ca30c; --critical:#d03b3b;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface-1:#1a1a19;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70;
+  --seq-100:#0d366b; --seq-200:#184f95; --seq-300:#256abf; --seq-400:#3987e5;
+  --seq-500:#6da7ec; --seq-600:#9ec5f4; --seq-700:#cde2fb;
+  --div-neg:#e66767; --div-mid:#383835; --div-pos:#3987e5;
+  --good:#0ca30c; --critical:#d03b3b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--page); color:var(--text-primary);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.5;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 72px}
+header h1{font-size:24px;font-weight:600;margin:0 0 6px;letter-spacing:-0.01em}
+header p.sub{color:var(--text-secondary);margin:0;max-width:70ch}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+button,select{
+  font:inherit;color:var(--text-primary);background:var(--surface-1);
+  border:1px solid var(--border);border-radius:8px;padding:7px 11px;cursor:pointer;
+}
+button:hover,select:hover{border-color:var(--axis)}
+.filters{
+  display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;
+  margin:26px 0 8px;padding:14px 16px;background:var(--surface-1);
+  border:1px solid var(--border);border-radius:12px;
+}
+.filters .f{display:flex;flex-direction:column;gap:5px}
+.filters label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.scen-note{color:var(--text-secondary);font-size:13px;margin:10px 2px 22px;max-width:85ch}
+
+.hero{
+  background:var(--surface-1);border:1px solid var(--border);border-radius:12px;
+  padding:22px 24px;margin-bottom:14px;
+}
+.hero .label{color:var(--text-secondary);font-size:13px;margin-bottom:2px}
+.hero .figure{font-size:52px;font-weight:600;line-height:1.05;letter-spacing:-0.02em}
+.hero .note{color:var(--text-secondary);font-size:13px;margin-top:6px;max-width:75ch}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-bottom:26px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:15px 16px}
+.tile .label{color:var(--text-secondary);font-size:12.5px}
+.tile .value{font-size:29px;font-weight:600;margin-top:3px;letter-spacing:-0.01em}
+.tile .delta{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.tile .delta b{font-weight:600}
+.tile svg{display:block;margin-top:9px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:16px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px 18px 12px;min-width:0}
+.card.wide{grid-column:1/-1}
+.card h3{font-size:14.5px;font-weight:600;margin:0 0 2px}
+.card p.desc{font-size:12.5px;color:var(--text-secondary);margin:0 0 10px;max-width:68ch}
+.card .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.card .head button{font-size:11.5px;padding:4px 9px;flex:none;color:var(--text-secondary)}
+.legend{display:flex;gap:15px;flex-wrap:wrap;margin:2px 0 6px;font-size:12.5px;color:var(--text-secondary)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:2px;border-radius:1px}
+.legend i.sw{width:11px;height:11px;border-radius:3px}
+.chart{width:100%;overflow:visible}
+table.tv{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;margin-top:6px}
+table.tv th,table.tv td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--grid)}
+table.tv th:first-child,table.tv td:first-child{text-align:left;font-variant-numeric:normal}
+table.tv th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.tvwrap{max-height:290px;overflow:auto}
+.hidden{display:none}
+.tip{
+  position:fixed;pointer-events:none;z-index:60;background:var(--surface-1);
+  border:1px solid var(--border);border-radius:9px;padding:9px 11px;
+  box-shadow:0 6px 22px rgba(0,0,0,.14);font-size:12.5px;min-width:132px;
+}
+.tip .tt{color:var(--text-secondary);font-size:11.5px;margin-bottom:5px}
+.tip .row{display:flex;align-items:center;gap:7px;margin-top:3px}
+.tip .row i{display:inline-block;width:12px;height:2px;border-radius:1px;flex:none}
+.tip .row b{font-weight:600;font-variant-numeric:tabular-nums}
+.tip .row s{color:var(--text-secondary);text-decoration:none;margin-left:auto;padding-left:12px}
+footer{margin-top:34px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid);padding-top:14px}
+h2.sec{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:32px 0 12px;font-weight:600}
+</style>
+</head>
+<body data-palette="#2a78d6,#eb6834,#1baf7a">
+<div class="wrap">
+<header class="topbar">
+  <div>
+    <h1>Resource distribution under group-structured cooperation</h1>
+    <p class="sub">An agent-based model in which cooperation probability depends on ethnic, cultural and social
+    distance as well as the agent's own economic position. Every panel is the mean of 5 seeds.</p>
+  </div>
+  <button id="theme">Dark</button>
+</header>
+
+<div class="filters">
+  <div class="f">
+    <label for="scen">Scenario</label>
+    <select id="scen"></select>
+  </div>
+  <div class="f">
+    <label for="cmpMetric">Compare scenarios on</label>
+    <select id="cmpMetric"></select>
+  </div>
+  <div class="f">
+    <label for="swMetric">Sweep outcome</label>
+    <select id="swMetric"></select>
+  </div>
+</div>
+<p class="scen-note" id="scenNote"></p>
+
+<div class="hero">
+  <div class="label" id="heroLabel"></div>
+  <div class="figure" id="heroValue"></div>
+  <div class="note" id="heroNote"></div>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<h2 class="sec">How the distribution evolves</h2>
+<div class="grid" id="gridA"></div>
+
+<h2 class="sec">Wealth concentration at the top and bottom</h2>
+<div class="grid" id="gridT"></div>
+
+<h2 class="sec">Who cooperates with whom</h2>
+<div class="grid" id="gridB"></div>
+
+<h2 class="sec">Counterfactuals and parameter sweeps</h2>
+<div class="grid" id="gridC"></div>
+
+<footer>
+  Simulation: <code>resdist</code> · donation game + asymmetric trust game · hybrid logistic decision rule with
+  learned group and dyad reputation · Theil decomposition of resource inequality.
+  Colours follow a CVD-validated three-slot categorical palette; every chart has a table view.
+</footer>
+</div>
+
+<div class="tip hidden" id="tip"></div>
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("payload").textContent);
+const GROUPS = DATA.meta.group_names;
+const SER = ["var(--series-1)","var(--series-2)","var(--series-3)"];
+const tip = document.getElementById("tip");
+
+/* ---------- helpers ---------- */
+const S = (t,a)=>{const e=document.createElementNS("http://www.w3.org/2000/svg",t);
+  for(const k in a) e.setAttribute(k,a[k]); return e;};
+const fmtPct = v => (v*100).toFixed(1)+"%";
+const fmtNum = v => {if(v===0) return "0"; const a=Math.abs(v);
+  return a>=100? v.toFixed(0) : a>=10? v.toFixed(1) : a>=1? v.toFixed(2) : v.toFixed(3);};
+const fmt2 = v => v.toFixed(2);
+function fmtBy(key,v){
+  if(v===null||v===undefined||Number.isNaN(v)) return "—";
+  const m=DATA.meta.metrics[key];
+  return m&&m.pct? fmtPct(v) : fmtNum(v);
+}
+/* Tick text width drives the left margin: a "30.0%" tick and a rotated axis
+   label will collide at a fixed 52px gutter. */
+function leftGutter(ticks,fmt){
+  let w=0; ticks.forEach(t=>{w=Math.max(w,String(fmt(t)).length);});
+  return Math.round(22+w*6.4+8);
+}
+function niceTicks(lo,hi,n){
+  if(hi===lo){hi=lo+1;}
+  const raw=(hi-lo)/n, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const norm=raw/mag, step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  const out=[]; for(let v=Math.ceil(lo/step)*step; v<=hi+1e-9; v+=step) out.push(+v.toFixed(10));
+  return out;
+}
+function showTip(html,x,y){
+  tip.innerHTML=""; tip.appendChild(html); tip.classList.remove("hidden");
+  const r=tip.getBoundingClientRect();
+  let left=x+16, top=y-r.height/2;
+  if(left+r.width>innerWidth-8) left=x-r.width-16;
+  top=Math.max(8,Math.min(top,innerHeight-r.height-8));
+  tip.style.left=left+"px"; tip.style.top=top+"px";
+}
+const hideTip=()=>tip.classList.add("hidden");
+function tipNode(title,rows){
+  const f=document.createDocumentFragment();
+  const t=document.createElement("div"); t.className="tt"; t.textContent=title; f.appendChild(t);
+  rows.forEach(r=>{
+    const d=document.createElement("div"); d.className="row";
+    if(r.color){const i=document.createElement("i"); i.style.background=r.color; d.appendChild(i);}
+    const b=document.createElement("b"); b.textContent=r.value; d.appendChild(b);
+    const s=document.createElement("s"); s.textContent=r.name; d.appendChild(s);
+    f.appendChild(d);
+  });
+  return f;
+}
+/* card scaffold: title, description, legend, chart slot, table-view toggle */
+function card(parent,{title,desc,wide}){
+  const c=document.createElement("div"); c.className="card"+(wide?" wide":"");
+  const head=document.createElement("div"); head.className="head";
+  const left=document.createElement("div");
+  const h=document.createElement("h3"); h.textContent=title; left.appendChild(h);
+  if(desc){const p=document.createElement("p"); p.className="desc"; p.textContent=desc; left.appendChild(p);}
+  head.appendChild(left);
+  const btn=document.createElement("button"); btn.textContent="Table";
+  head.appendChild(btn); c.appendChild(head);
+  const legend=document.createElement("div"); legend.className="legend"; c.appendChild(legend);
+  const slot=document.createElement("div"); c.appendChild(slot);
+  const tw=document.createElement("div"); tw.className="tvwrap hidden"; c.appendChild(tw);
+  btn.onclick=()=>{const on=tw.classList.toggle("hidden");
+    slot.classList.toggle("hidden",!on); legend.classList.toggle("hidden",!on);
+    btn.textContent=on?"Table":"Chart";};
+  parent.appendChild(c);
+  return {card:c,legend,slot,table:tw};
+}
+function legendItems(el,items,shape){
+  el.innerHTML="";
+  items.forEach(it=>{
+    const s=document.createElement("span");
+    const i=document.createElement("i"); if(shape==="sw") i.className="sw";
+    i.style.background=it.color; s.appendChild(i);
+    s.appendChild(document.createTextNode(it.name)); el.appendChild(s);
+  });
+}
+function tableView(el,cols,rows){
+  el.innerHTML="";
+  const t=document.createElement("table"); t.className="tv";
+  const th=document.createElement("tr");
+  cols.forEach(c=>{const e=document.createElement("th"); e.textContent=c; th.appendChild(e);});
+  t.appendChild(th);
+  rows.forEach(r=>{const tr=document.createElement("tr");
+    r.forEach(v=>{const td=document.createElement("td"); td.textContent=v; tr.appendChild(td);});
+    t.appendChild(tr);});
+  el.appendChild(t);
+}
+</script>
+<script>
+/* ---------- line chart with crosshair ---------- */
+function lineChart(slot,{x,series,yFmt,xLabel,yLabel,baseline,height=248}){
+  slot.innerHTML="";
+  const W=slot.clientWidth||520, H=height;
+  let lo=Infinity,hi=-Infinity;
+  series.forEach(s=>s.values.forEach(v=>{if(v!=null&&!Number.isNaN(v)){lo=Math.min(lo,v);hi=Math.max(hi,v);}}));
+  if(baseline!=null){lo=Math.min(lo,baseline);hi=Math.max(hi,baseline);}
+  if(!isFinite(lo)){lo=0;hi=1;}
+  const pad=(hi-lo)*0.12||0.1; lo-=pad; hi+=pad;
+  if(lo>0&&lo<(hi-lo)*0.5) lo=0;
+  const ticks=niceTicks(lo,hi,4);
+  lo=Math.min(lo,ticks[0]); hi=Math.max(hi,ticks[ticks.length-1]);
+  const m={l:leftGutter(ticks,yFmt),r:58,t:12,b:34};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const svg=S("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,width:W,height:H}); slot.appendChild(svg);
+  const X=i=>m.l+(x.length<2?0:i/(x.length-1)*iw);
+  const Y=v=>m.t+ih-(v-lo)/(hi-lo)*ih;
+
+  ticks.forEach(t=>{
+    svg.appendChild(S("line",{x1:m.l,x2:m.l+iw,y1:Y(t),y2:Y(t),stroke:"var(--grid)","stroke-width":1}));
+    const e=S("text",{x:m.l-9,y:Y(t)+4,"text-anchor":"end",fill:"var(--muted)","font-size":11,
+      style:"font-variant-numeric:tabular-nums"}); e.textContent=yFmt(t); svg.appendChild(e);
+  });
+  if(baseline!=null)
+    svg.appendChild(S("line",{x1:m.l,x2:m.l+iw,y1:Y(baseline),y2:Y(baseline),stroke:"var(--axis)","stroke-width":1}));
+  svg.appendChild(S("line",{x1:m.l,x2:m.l+iw,y1:m.t+ih,y2:m.t+ih,stroke:"var(--axis)","stroke-width":1}));
+  [0,Math.floor((x.length-1)/2),x.length-1].forEach(i=>{
+    const e=S("text",{x:X(i),y:m.t+ih+20,"text-anchor":i===0?"start":i===x.length-1?"end":"middle",
+      fill:"var(--muted)","font-size":11}); e.textContent=x[i]; svg.appendChild(e);});
+  const xl=S("text",{x:m.l+iw/2,y:H-2,"text-anchor":"middle",fill:"var(--muted)","font-size":11});
+  xl.textContent=xLabel; svg.appendChild(xl);
+  const yl=S("text",{x:0,y:0,"text-anchor":"middle",fill:"var(--muted)","font-size":11,
+    transform:`translate(13,${m.t+ih/2}) rotate(-90)`}); yl.textContent=yLabel; svg.appendChild(yl);
+
+  series.forEach((s,si)=>{
+    const col=s.color||SER[si%3];
+    let d="",pen=false;
+    s.values.forEach((v,i)=>{ if(v==null||Number.isNaN(v)){pen=false;return;}
+      d+=(pen?"L":"M")+X(i)+" "+Y(v); pen=true;});
+    svg.appendChild(S("path",{d,fill:"none",stroke:col,"stroke-width":2,
+      "stroke-linejoin":"round","stroke-linecap":"round"}));
+    // end marker + direct label (the relief channel for sub-3:1 hues)
+    let last=-1; s.values.forEach((v,i)=>{if(v!=null&&!Number.isNaN(v))last=i;});
+    if(last>=0){
+      svg.appendChild(S("circle",{cx:X(last),cy:Y(s.values[last]),r:4,fill:col,
+        stroke:"var(--surface-1)","stroke-width":2}));
+      const e=S("text",{x:X(last)+9,y:Y(s.values[last])+4,fill:"var(--text-secondary)","font-size":11,
+        style:"font-variant-numeric:tabular-nums"});
+      e.textContent=yFmt(s.values[last]); svg.appendChild(e);
+    }
+  });
+
+  const cross=S("line",{x1:0,x2:0,y1:m.t,y2:m.t+ih,stroke:"var(--axis)","stroke-width":1,opacity:0});
+  svg.appendChild(cross);
+  const dots=series.map((s,si)=>{const c=S("circle",{r:4.5,fill:s.color||SER[si%3],
+    stroke:"var(--surface-1)","stroke-width":2,opacity:0}); svg.appendChild(c); return c;});
+  const hit=S("rect",{x:m.l,y:m.t,width:iw,height:ih,fill:"transparent"}); svg.appendChild(hit);
+  const move=ev=>{
+    const r=svg.getBoundingClientRect();
+    const px=(ev.clientX-r.left)*(W/r.width);
+    let i=Math.round((px-m.l)/iw*(x.length-1)); i=Math.max(0,Math.min(x.length-1,i));
+    cross.setAttribute("x1",X(i)); cross.setAttribute("x2",X(i)); cross.setAttribute("opacity",1);
+    const rows=[];
+    series.forEach((s,si)=>{const v=s.values[i];
+      if(v==null||Number.isNaN(v)){dots[si].setAttribute("opacity",0);return;}
+      dots[si].setAttribute("cx",X(i)); dots[si].setAttribute("cy",Y(v)); dots[si].setAttribute("opacity",1);
+      rows.push({color:s.color||SER[si%3],name:s.name,value:yFmt(v)});});
+    showTip(tipNode(xLabel+" "+x[i],rows),ev.clientX,ev.clientY);
+  };
+  hit.addEventListener("pointermove",move);
+  hit.addEventListener("pointerleave",()=>{hideTip();cross.setAttribute("opacity",0);
+    dots.forEach(d=>d.setAttribute("opacity",0));});
+}
+
+/* ---------- stacked area (part-to-whole over time) ---------- */
+function stackedArea(slot,{x,series,yFmt,xLabel,yLabel,height=248}){
+  slot.innerHTML="";
+  const W=slot.clientWidth||520,H=height;
+  const tot=x.map((_,i)=>series.reduce((a,s)=>a+(s.values[i]||0),0));
+  let hi=Math.max(...tot)*1.12||1;
+  const ticks=niceTicks(0,hi,4); hi=Math.max(hi,ticks[ticks.length-1]);
+  const m={l:leftGutter(ticks,yFmt),r:58,t:12,b:34};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const svg=S("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,width:W,height:H}); slot.appendChild(svg);
+  const X=i=>m.l+(x.length<2?0:i/(x.length-1)*iw), Y=v=>m.t+ih-v/hi*ih;
+  ticks.forEach(t=>{svg.appendChild(S("line",{x1:m.l,x2:m.l+iw,y1:Y(t),y2:Y(t),stroke:"var(--grid)","stroke-width":1}));
+    const e=S("text",{x:m.l-9,y:Y(t)+4,"text-anchor":"end",fill:"var(--muted)","font-size":11,
+      style:"font-variant-numeric:tabular-nums"}); e.textContent=yFmt(t); svg.appendChild(e);});
+  let base=x.map(()=>0);
+  series.forEach((s,si)=>{
+    const top=base.map((b,i)=>b+(s.values[i]||0));
+    let d="M"+X(0)+" "+Y(top[0]);
+    for(let i=1;i<x.length;i++) d+="L"+X(i)+" "+Y(top[i]);
+    for(let i=x.length-1;i>=0;i--) d+="L"+X(i)+" "+Y(base[i]);
+    d+="Z";
+    svg.appendChild(S("path",{d,fill:s.color||SER[si%3],"fill-opacity":0.22}));
+    let edge="M"+X(0)+" "+Y(top[0]);
+    for(let i=1;i<x.length;i++) edge+="L"+X(i)+" "+Y(top[i]);
+    svg.appendChild(S("path",{d:edge,fill:"none",stroke:s.color||SER[si%3],"stroke-width":2,
+      "stroke-linejoin":"round","stroke-linecap":"round"}));
+    // 2px surface gap between bands, never a border around the mark
+    if(si>0){let g="M"+X(0)+" "+Y(base[0]);
+      for(let i=1;i<x.length;i++) g+="L"+X(i)+" "+Y(base[i]);
+      svg.appendChild(S("path",{d:g,fill:"none",stroke:"var(--surface-1)","stroke-width":2}));}
+    base=top;
+  });
+  svg.appendChild(S("line",{x1:m.l,x2:m.l+iw,y1:m.t+ih,y2:m.t+ih,stroke:"var(--axis)","stroke-width":1}));
+  [0,Math.floor((x.length-1)/2),x.length-1].forEach(i=>{
+    const e=S("text",{x:X(i),y:m.t+ih+20,"text-anchor":i===0?"start":i===x.length-1?"end":"middle",
+      fill:"var(--muted)","font-size":11}); e.textContent=x[i]; svg.appendChild(e);});
+  const xl=S("text",{x:m.l+iw/2,y:H-2,"text-anchor":"middle",fill:"var(--muted)","font-size":11});
+  xl.textContent=xLabel; svg.appendChild(xl);
+  const yl=S("text",{x:0,y:0,"text-anchor":"middle",fill:"var(--muted)","font-size":11,
+    transform:`translate(13,${m.t+ih/2}) rotate(-90)`}); yl.textContent=yLabel; svg.appendChild(yl);
+  const cross=S("line",{x1:0,x2:0,y1:m.t,y2:m.t+ih,stroke:"var(--axis)","stroke-width":1,opacity:0});
+  svg.appendChild(cross);
+  const hit=S("rect",{x:m.l,y:m.t,width:iw,height:ih,fill:"transparent"}); svg.appendChild(hit);
+  hit.addEventListener("pointermove",ev=>{
+    const r=svg.getBoundingClientRect(); const px=(ev.clientX-r.left)*(W/r.width);
+    let i=Math.round((px-m.l)/iw*(x.length-1)); i=Math.max(0,Math.min(x.length-1,i));
+    cross.setAttribute("x1",X(i)); cross.setAttribute("x2",X(i)); cross.setAttribute("opacity",1);
+    const rows=series.map((s,si)=>({color:s.color||SER[si%3],name:s.name,value:yFmt(s.values[i]||0)}));
+    rows.push({name:"total",value:yFmt(tot[i])});
+    showTip(tipNode(xLabel+" "+x[i],rows),ev.clientX,ev.clientY);});
+  hit.addEventListener("pointerleave",()=>{hideTip();cross.setAttribute("opacity",0);});
+}
+
+/* ---------- heatmap (sequential single hue) ---------- */
+const SEQ=["--seq-100","--seq-200","--seq-300","--seq-400","--seq-500","--seq-600","--seq-700"];
+function seqColor(t){ // t in [0,1]
+  const i=Math.max(0,Math.min(SEQ.length-1,Math.round(t*(SEQ.length-1))));
+  return `var(${SEQ[i]})`;
+}
+function seqInk(t){ return t>0.55? "#ffffff" : "var(--text-primary)"; }
+function heatmap(slot,{rows,cols,values,rowLabel,colLabel,vFmt,cellNote,height}){
+  slot.innerHTML="";
+  const W=slot.clientWidth||520;
+  let rw=0; rows.forEach(r=>{rw=Math.max(rw,String(r).length);});
+  const m={l:Math.round((rowLabel?18:0)+rw*6.4+16),r:16,t:26,b:56};
+  const cw=(W-m.l-m.r)/cols.length;
+  const ch=Math.min(56,Math.max(34,cw*0.62));
+  const H=(height||m.t+ch*rows.length+m.b);
+  const svg=S("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,width:W,height:H}); slot.appendChild(svg);
+  let lo=Infinity,hi=-Infinity;
+  values.forEach(r=>r.forEach(v=>{if(v!=null&&!Number.isNaN(v)){lo=Math.min(lo,v);hi=Math.max(hi,v);}}));
+  if(!isFinite(lo)){lo=0;hi=1;} if(hi===lo)hi=lo+1e-9;
+  cols.forEach((c,j)=>{const e=S("text",{x:m.l+cw*j+cw/2,y:m.t-9,"text-anchor":"middle",
+    fill:"var(--muted)","font-size":11}); e.textContent=c; svg.appendChild(e);});
+  rows.forEach((r,i)=>{
+    const e=S("text",{x:m.l-10,y:m.t+ch*i+ch/2+4,"text-anchor":"end",fill:"var(--text-secondary)","font-size":11.5});
+    e.textContent=r; svg.appendChild(e);
+    cols.forEach((c,j)=>{
+      const v=values[i][j]; const t=(v-lo)/(hi-lo);
+      const g=S("g",{}); svg.appendChild(g);
+      // 2px surface gap between cells
+      const rect=S("rect",{x:m.l+cw*j+1,y:m.t+ch*i+1,width:cw-2,height:ch-2,rx:4,
+        fill:v==null||Number.isNaN(v)?"var(--grid)":seqColor(t)});
+      g.appendChild(rect);
+      const lab=S("text",{x:m.l+cw*j+cw/2,y:m.t+ch*i+ch/2+4,"text-anchor":"middle",
+        "font-size":11.5,fill:seqInk(t),style:"font-variant-numeric:tabular-nums;pointer-events:none"});
+      lab.textContent=v==null||Number.isNaN(v)?"—":vFmt(v); g.appendChild(lab);
+      g.style.cursor="default";
+      g.addEventListener("pointermove",ev=>{rect.setAttribute("stroke","var(--text-primary)");
+        rect.setAttribute("stroke-width",1.5);
+        showTip(tipNode(cellNote? cellNote(r,c) : r+" → "+c,[{value:vFmt(v),name:""}]),ev.clientX,ev.clientY);});
+      g.addEventListener("pointerleave",()=>{rect.removeAttribute("stroke");hideTip();});
+    });
+  });
+  if(rowLabel){const rl=S("text",{x:0,y:0,"text-anchor":"middle",fill:"var(--muted)","font-size":11,
+    transform:`translate(13,${m.t+ch*rows.length/2}) rotate(-90)`});
+    rl.textContent=rowLabel; svg.appendChild(rl);}
+  if(colLabel){const cl=S("text",{x:m.l+(W-m.l-m.r)/2,y:H-34,"text-anchor":"middle",
+    fill:"var(--muted)","font-size":11}); cl.textContent=colLabel; svg.appendChild(cl);}
+  // scale legend
+  const lw=132,lx=m.l,ly=H-10;
+  SEQ.forEach((s,i)=>svg.appendChild(S("rect",{x:lx+i*(lw/SEQ.length),y:ly-8,
+    width:lw/SEQ.length-1.5,height:8,fill:`var(${s})`,rx:2})));
+  const t1=S("text",{x:lx+lw+8,y:ly,fill:"var(--muted)","font-size":10.5});
+  t1.textContent=vFmt(lo)+" → "+vFmt(hi); svg.appendChild(t1);
+}
+
+/* ---------- diverging bars (Δ vs baseline) ---------- */
+function divergingBars(slot,{items,vFmt,xLabel}){
+  slot.innerHTML="";
+  const W=slot.clientWidth||520, rowH=30, m={l:158,r:64,t:10,b:34};
+  const H=m.t+rowH*items.length+m.b;
+  const iw=W-m.l-m.r;
+  const svg=S("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,width:W,height:H}); slot.appendChild(svg);
+  const mx=Math.max(...items.map(d=>Math.abs(d.value)))||1;
+  const X=v=>m.l+iw/2+v/mx*(iw/2-6);
+  const ticks=niceTicks(-mx,mx,4);
+  ticks.forEach(t=>{svg.appendChild(S("line",{x1:X(t),x2:X(t),y1:m.t,y2:m.t+rowH*items.length,
+      stroke:"var(--grid)","stroke-width":1}));
+    const e=S("text",{x:X(t),y:m.t+rowH*items.length+18,"text-anchor":"middle",fill:"var(--muted)",
+      "font-size":10.5,style:"font-variant-numeric:tabular-nums"}); e.textContent=vFmt(t); svg.appendChild(e);});
+  svg.appendChild(S("line",{x1:X(0),x2:X(0),y1:m.t,y2:m.t+rowH*items.length,stroke:"var(--axis)","stroke-width":1}));
+  items.forEach((d,i)=>{
+    const y=m.t+rowH*i+rowH/2, bh=15, r=4;
+    const lab=S("text",{x:m.l-12,y:y+4,"text-anchor":"end",fill:"var(--text-secondary)","font-size":12});
+    lab.textContent=d.name; svg.appendChild(lab);
+    const x0=X(0), x1=X(d.value), w=Math.abs(x1-x0);
+    // 4px rounded data-end, square at the baseline
+    const neg=d.value<0, top=y-bh/2, bot=y+bh/2;
+    let path;
+    if(w<0.6){ path=null; }
+    else if(neg) path=`M${x0} ${top} H${x0-w+r} Q${x0-w} ${top} ${x0-w} ${top+r} V${bot-r} Q${x0-w} ${bot} ${x0-w+r} ${bot} H${x0} Z`;
+    else path=`M${x0} ${top} H${x0+w-r} Q${x0+w} ${top} ${x0+w} ${top+r} V${bot-r} Q${x0+w} ${bot} ${x0+w-r} ${bot} H${x0} Z`;
+    const g=S("g",{}); svg.appendChild(g);
+    if(path) g.appendChild(S("path",{d:path,fill:neg?"var(--div-neg)":"var(--div-pos)"}));
+    // measure before placing: a long bar's outside label would land in the
+    // category gutter, so flip it inside the bar end instead of overlapping.
+    const txt=(d.value>0?"+":"")+vFmt(d.value), tw=txt.length*6.3+10;
+    const outside = neg ? (x1-tw > m.l+4) : (x1+tw < m.l+iw+m.r-6);
+    const inside = path && w > tw+6;
+    let vx,anchor,ink;
+    if(outside){vx=neg?x1-8:x1+8; anchor=neg?"end":"start"; ink="var(--text-secondary)";}
+    else if(inside){vx=neg?x1+8:x1-8; anchor=neg?"start":"end"; ink="#ffffff";}
+    else {vx=neg?x1-8:x1+8; anchor=neg?"end":"start"; ink="var(--text-secondary)";}
+    const v=S("text",{x:vx,y:y+4,"text-anchor":anchor,fill:ink,"font-size":11,
+      style:"font-variant-numeric:tabular-nums"});
+    v.textContent=txt; g.appendChild(v);
+    const hit=S("rect",{x:m.l,y:y-rowH/2,width:iw,height:rowH,fill:"transparent"}); g.appendChild(hit);
+    hit.addEventListener("pointermove",ev=>showTip(tipNode(d.name,
+      [{value:(d.value>0?"+":"")+vFmt(d.value),name:"vs baseline"},
+       {value:vFmt(d.abs),name:"absolute"}]),ev.clientX,ev.clientY));
+    hit.addEventListener("pointerleave",hideTip);
+  });
+  const xl=S("text",{x:m.l+iw/2,y:H-4,"text-anchor":"middle",fill:"var(--muted)","font-size":11});
+  xl.textContent=xLabel; svg.appendChild(xl);
+}
+
+/* ---------- sparkline for stat tiles ---------- */
+function spark(values,color){
+  const W=180,H=30,svg=S("svg",{width:W,height:H,viewBox:`0 0 ${W} ${H}`});
+  const lo=Math.min(...values), hi=Math.max(...values), sp=(hi-lo)||1;
+  let d="";
+  values.forEach((v,i)=>{const x=i/(values.length-1)*(W-6)+3, y=H-3-(v-lo)/sp*(H-6);
+    d+=(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1);});
+  svg.appendChild(S("path",{d,fill:"none",stroke:color,"stroke-width":2,
+    "stroke-linecap":"round","stroke-linejoin":"round",opacity:0.55}));
+  const lx=W-3, ly=H-3-(values[values.length-1]-lo)/sp*(H-6);
+  svg.appendChild(S("circle",{cx:lx,cy:ly,r:3.5,fill:color,stroke:"var(--surface-1)","stroke-width":2}));
+  return svg;
+}
+</script>
+<script>
+/* ---------- render ---------- */
+const el=id=>document.getElementById(id);
+/* Cards must all exist before any chart measures its slot: a grid with one
+   card in it is full-width, so drawing eagerly sizes the SVG for a row it
+   will not end up occupying and the browser scales the text down. */
+const PEND=[]; const draw=(fn,...a)=>PEND.push(()=>fn(...a));
+const flush=()=>{while(PEND.length) PEND.shift()();};
+const scenSel=el("scen"), cmpSel=el("cmpMetric"), swSel=el("swMetric");
+
+Object.entries(DATA.scenarios).forEach(([k,v])=>{
+  const o=document.createElement("option"); o.value=k; o.textContent=v.title; scenSel.appendChild(o);});
+DATA.meta.compare_metrics.forEach(k=>{
+  const o=document.createElement("option"); o.value=k; o.textContent=DATA.meta.metrics[k].label; cmpSel.appendChild(o);});
+DATA.meta.compare_metrics.forEach(k=>{
+  const o=document.createElement("option"); o.value=k; o.textContent=DATA.meta.metrics[k].label; swSel.appendChild(o);});
+cmpSel.value="gini"; swSel.value="ingroup_bias";
+
+function tile(parent,{label,value,delta,deltaGood,values,color}){
+  const d=document.createElement("div"); d.className="tile";
+  const l=document.createElement("div"); l.className="label"; l.textContent=label; d.appendChild(l);
+  const v=document.createElement("div"); v.className="value"; v.textContent=value; d.appendChild(v);
+  if(delta!==undefined&&delta!==null){
+    // Deltas stay in neutral ink. Whether less inequality or less segregation
+    // is "good" is the reader's judgement, not the model's, and status colours
+    // are reserved for genuine good/bad states.
+    const dd=document.createElement("div"); dd.className="delta";
+    const b=document.createElement("b"); b.textContent=delta;
+    dd.appendChild(b); dd.appendChild(document.createTextNode(" vs baseline")); d.appendChild(dd);
+  }
+  if(values) d.appendChild(spark(values,color||"var(--series-1)"));
+  parent.appendChild(d);
+}
+
+function render(){
+  const key=scenSel.value, sc=DATA.scenarios[key], base=DATA.scenarios.baseline;
+  const s=sc.series, f=sc.final, bf=base.final;
+  el("scenNote").textContent=sc.note;
+
+  // hero: the headline distributional fact
+  const smallest=GROUPS.length-1;
+  el("heroLabel").textContent=`Share of all resources held by ${GROUPS[smallest]}`;
+  el("heroValue").textContent=fmtPct(f["share_g"+smallest]);
+  el("heroNote").textContent=
+    `${GROUPS[smallest]} is ${fmtPct(DATA.meta.pop_shares[smallest])} of the population. `+
+    `${fmtPct(f["destitute_g"+smallest])} of its members hold nothing at all, against `+
+    `${fmtPct(f.destitute_g0)} in ${GROUPS[0]}.`;
+
+  // KPI row
+  const k=el("kpis"); k.innerHTML="";
+  const isBase=key==="baseline";
+  const dl=(m,goodIfDown)=>isBase?null:((f[m]-bf[m]>0?"+":"")+fmtBy(m,f[m]-bf[m]));
+  const gd=(m,goodIfDown)=>isBase?null:(goodIfDown? f[m]<bf[m] : f[m]>bf[m]);
+  tile(k,{label:"Gini of resources",value:fmt2(f.gini),delta:dl("gini"),deltaGood:gd("gini",true),
+    values:s.gini,color:"var(--series-1)"});
+  tile(k,{label:"Between-group share of inequality",value:fmtPct(f.between_share),
+    delta:dl("between_share"),deltaGood:gd("between_share",true),values:s.between_share,color:"var(--series-2)"});
+  tile(k,{label:"In-group cooperation bias",value:fmt2(f.ingroup_bias),
+    delta:dl("ingroup_bias"),deltaGood:gd("ingroup_bias",true),values:s.ingroup_bias,color:"var(--series-3)"});
+  tile(k,{label:"Network ethnic assortativity",value:fmt2(f.assortativity),
+    delta:dl("assortativity"),deltaGood:gd("assortativity",true),values:s.assortativity,color:"var(--series-1)"});
+  tile(k,{label:"Top 10% share of all resources",value:fmtPct(f.top10_share),
+    delta:dl("top10_share"),deltaGood:gd("top10_share",true),values:s.top10_share,color:"var(--series-2)"});
+
+  const A=el("gridA"); A.innerHTML="";
+  // 1. mean resources by group
+  let c=card(A,{title:"Mean resources held, by group",
+    desc:"Group A is half the population and the most productive; Group C is a fifth and the least."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,series:GROUPS.map((g,i)=>({name:g,values:s["wealth_g"+i]})),
+    yFmt:fmtNum,xLabel:"round",yLabel:"mean resources"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmtNum(s["wealth_g"+j][i]))]));
+
+  // 2. representation ratio - polarity around parity, so diverging framing
+  c=card(A,{title:"Representation ratio: resource share ÷ population share",
+    desc:"1.0 is parity. Above the line a group holds more than its numbers, below it holds less."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,baseline:1,
+    series:GROUPS.map((g,i)=>({name:g,values:s["share_g"+i].map(v=>v/DATA.meta.pop_shares[i])})),
+    yFmt:fmt2,xLabel:"round",yLabel:"× parity"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,
+    ...GROUPS.map((g,j)=>fmt2(s["share_g"+j][i]/DATA.meta.pop_shares[j]))]));
+
+  // 3. inequality decomposition
+  c=card(A,{title:"Inequality: between-group vs within-group",
+    desc:"Theil T, additively decomposed. The between-group band is the part attributable to group membership."});
+  legendItems(c.legend,[{name:"Between groups",color:SER[0]},{name:"Within groups",color:SER[1]}],"sw");
+  draw(stackedArea,c.slot,{x:s.t,series:[{name:"Between groups",values:s.theil_between},
+    {name:"Within groups",values:s.theil_within}],yFmt:fmt2,xLabel:"round",yLabel:"Theil T"});
+  tableView(c.table,["Round","Between","Within","Between share"],s.t.map((t,i)=>
+    [t,fmt2(s.theil_between[i]),fmt2(s.theil_within[i]),fmtPct(s.between_share[i])]));
+
+  // 4. destitution by group
+  c=card(A,{title:"Share of each group holding nothing",
+    desc:"Agents at zero resources. Income at zero falls short of subsistence, so escape requires being cooperated with."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,series:GROUPS.map((g,i)=>({name:g,values:s["destitute_g"+i]})),
+    yFmt:fmtPct,xLabel:"round",yLabel:"destitute share"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmtPct(s["destitute_g"+j][i]))]));
+
+  const T=el("gridT"); T.innerHTML="";
+  // t1. within-group concentration: top 10%
+  c=card(T,{title:"Top 10% share of each group's own wealth",
+    desc:"Of the wealth held by a group's own members, the share held by that group's own richest tenth. "+
+         "Higher means more concentration within the group, independent of the group's size."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,series:GROUPS.map((g,i)=>({name:g,values:s["top10_share_g"+i]})),
+    yFmt:fmtPct,xLabel:"round",yLabel:"share of group's wealth"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmtPct(s["top10_share_g"+j][i]))]));
+
+  // t2. within-group concentration: top 1%
+  c=card(T,{title:"Top 1% share of each group's own wealth",
+    desc:"Same as above for the single richest percentile within each group -- the sharpest view of "+
+         "within-group concentration."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,series:GROUPS.map((g,i)=>({name:g,values:s["top1_share_g"+i]})),
+    yFmt:fmtPct,xLabel:"round",yLabel:"share of group's wealth"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmtPct(s["top1_share_g"+j][i]))]));
+
+  // t3. within-group concentration: bottom 10%
+  c=card(T,{title:"Bottom 10% share of each group's own wealth",
+    desc:"Of the wealth held by a group's own members, the share held by that group's own poorest tenth. "+
+         "A number near zero means the group's poor hold almost nothing of what the group has."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,series:GROUPS.map((g,i)=>({name:g,values:s["bottom10_share_g"+i]})),
+    yFmt:fmtPct,xLabel:"round",yLabel:"share of group's wealth"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmtPct(s["bottom10_share_g"+j][i]))]));
+
+  // t4. representation in the population-wide top 10%
+  c=card(T,{title:"Representation in the population-wide richest 10%",
+    desc:"Each group's share of the overall top decile, divided by its share of the population. "+
+         "1.0 is proportionate; above 1.0 means the group is over-represented among the very richest agents overall."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,baseline:1,
+    series:GROUPS.map((g,i)=>({name:g,values:s["top10_repr_g"+i]})),
+    yFmt:fmt2,xLabel:"round",yLabel:"× proportionate"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmt2(s["top10_repr_g"+j][i]))]));
+
+  // t5. representation in the population-wide top 1%
+  c=card(T,{title:"Representation in the population-wide richest 1%",
+    desc:"Same comparison for the single richest percentile of the whole population -- the group composition "+
+         "of the very top."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,baseline:1,
+    series:GROUPS.map((g,i)=>({name:g,values:s["top1_repr_g"+i]})),
+    yFmt:fmt2,xLabel:"round",yLabel:"× proportionate"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmt2(s["top1_repr_g"+j][i]))]));
+
+  // t6. representation in the population-wide bottom 10%
+  c=card(T,{title:"Representation in the population-wide poorest 10%",
+    desc:"Each group's share of the overall bottom decile, divided by its share of the population. "+
+         "Above 1.0 means the group is over-represented among the very poorest agents overall."});
+  legendItems(c.legend,GROUPS.map((g,i)=>({name:g,color:SER[i]})));
+  draw(lineChart,c.slot,{x:s.t,baseline:1,
+    series:GROUPS.map((g,i)=>({name:g,values:s["bottom10_repr_g"+i]})),
+    yFmt:fmt2,xLabel:"round",yLabel:"× proportionate"});
+  tableView(c.table,["Round",...GROUPS],s.t.map((t,i)=>[t,...GROUPS.map((g,j)=>fmt2(s["bottom10_repr_g"+j][i]))]));
+
+  const B=el("gridB"); B.innerHTML="";
+  // 5. cooperation matrix
+  c=card(B,{title:"Cooperation intensity, row group toward column group",
+    desc:"Averaged over the whole run. The diagonal is in-group cooperation."});
+  draw(heatmap,c.slot,{rows:GROUPS,cols:GROUPS,values:sc.coop_matrix,vFmt:fmt2,
+    colLabel:"",cellNote:(r,cc)=>r+" → "+cc});
+  tableView(c.table,["Toward →",...GROUPS],GROUPS.map((g,i)=>[g,...sc.coop_matrix[i].map(fmt2)]));
+
+  // 6. in vs out cooperation
+  c=card(B,{title:"In-group vs out-group cooperation over time",
+    desc:"The gap between these two lines is the in-group bias reported above."});
+  legendItems(c.legend,[{name:"With co-ethnics",color:SER[0]},{name:"Across groups",color:SER[1]}]);
+  draw(lineChart,c.slot,{x:s.t,series:[{name:"With co-ethnics",values:s.coop_in},
+    {name:"Across groups",values:s.coop_out}],yFmt:fmt2,xLabel:"round",yLabel:"cooperation"});
+  tableView(c.table,["Round","In-group","Out-group","Bias"],s.t.map((t,i)=>
+    [t,fmt2(s.coop_in[i]),fmt2(s.coop_out[i]),fmt2(s.ingroup_bias[i])]));
+
+  const C=el("gridC"); C.innerHTML="";
+  // 7. scenario comparison
+  const cm=cmpSel.value;
+  c=card(C,{wide:true,title:"Effect of switching off each mechanism — "+DATA.meta.metrics[cm].label,
+    desc:DATA.meta.metrics[cm].desc+" Bars show the change from the baseline world."});
+  legendItems(c.legend,[{name:"Higher than baseline",color:"var(--div-pos)"},
+    {name:"Lower than baseline",color:"var(--div-neg)"}],"sw");
+  const items=Object.entries(DATA.scenarios).filter(([kk])=>kk!=="baseline")
+    .map(([kk,v])=>({name:v.title,value:v.final[cm]-bf[cm],abs:v.final[cm]}))
+    .sort((a,b)=>b.value-a.value);
+  draw(divergingBars,c.slot,{items,vFmt:v=>fmtBy(cm,v),xLabel:"change vs baseline"});
+  tableView(c.table,["Scenario",DATA.meta.metrics[cm].label,"Δ vs baseline"],
+    [["baseline",fmtBy(cm,bf[cm]),"—"],...items.map(d=>[d.name,fmtBy(cm,d.abs),
+      (d.value>0?"+":"")+fmtBy(cm,d.value)])]);
+
+  // 8-9. sweeps
+  const sm=swSel.value;
+  Object.entries(DATA.sweeps).forEach(([kk,sw])=>{
+    const cc=card(C,{title:sw.title+" — "+DATA.meta.metrics[sm].label,desc:sw.desc});
+    const vals=sw.y.map(y=>sw.x.map(x=>{
+      const cell=sw.cells.find(c2=>c2.x===x&&c2.y===y); return cell? cell[sm] : null;}));
+    draw(heatmap,cc.slot,{rows:sw.y.map(String),cols:sw.x.map(String),values:vals,
+      vFmt:v=>fmtBy(sm,v),colLabel:sw.x_label,rowLabel:sw.y_label,
+      cellNote:(r,c2)=>sw.y_label+" "+r+", "+sw.x_label+" "+c2});
+    tableView(cc.table,[sw.y_label+" \\ "+sw.x_label,...sw.x.map(String)],
+      sw.y.map((y,i)=>[String(y),...vals[i].map(v=>fmtBy(sm,v))]));
+  });
+
+  flush();
+}
+
+scenSel.onchange=render; cmpSel.onchange=render; swSel.onchange=render;
+el("theme").onclick=()=>{
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme",dark?"light":"dark");
+  el("theme").textContent=dark?"Dark":"Light"; render();};
+let rt; addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(render,150);});
+render();
+</script>
+</body>
+</html>

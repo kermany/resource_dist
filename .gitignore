@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+.venv/
+venv/
+
+# Generated outputs / archives
+outputs/
+resource_distribution_dashboard.html
+resdist_sim.zip
